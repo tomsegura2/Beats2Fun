@@ -8,12 +8,14 @@ from colour import Color
 import util
 import random
 
+import parsers.parseaudio
 import parsers.parsefs
 import parsers.parseosu
 import parsers.parsesm
 import parsers.parsetxt
 
 loaded_parsers = [
+    parsers.parseaudio.AudioParser,
     parsers.parsefs.FSParser,
     parsers.parseosu.OSUParser,
     parsers.parsesm.SMParser,
