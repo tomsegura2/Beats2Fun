@@ -2,6 +2,7 @@ colour
 Gooey
 halo
 matplotlib
+librosa
 pydub
 simfile
 tqdm
