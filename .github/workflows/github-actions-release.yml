@@ -1,17 +1,23 @@
 name: Beats2Build build
-on: [push]
+
+on:
+  push:
+  workflow_dispatch:
+  release:
+    types: [published]
+
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v2
-    
+
     - uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
         python-version: 3.9
-    
+
     - name: Install requirements
       shell: bash -l {0}
       run: |
@@ -19,7 +25,7 @@ jobs:
         sudo apt install ffmpeg
         conda install -c conda-forge wxpython
         pip3 install -r requirements.txt
-    
+
     - name: Cache testdata
       uses: actions/cache@v3
       id: cache-testdata
@@ -27,14 +33,14 @@ jobs:
         key: cache-testdata
         restore-keys: cache-testdata
         path: .github/test/data
-    
+
     - name: Preparing test data
       if: steps.cache-testdata.outputs.cache-hit != 'true'
       shell: bash -l {0}
       run: |
         cd .github/test
         /bin/bash testdata.sh
-        
+
     - name: Running tests
       shell: bash -l {0}
       run: |
@@ -55,46 +61,41 @@ jobs:
   build:
 
     runs-on: windows-latest
+    needs: test
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: "Requirements"
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
+    - name: Install requirements
       run: |
-        choco install miniconda3 --params="'/AddToPath:1'"
-        choco install nsis 7zip
-        conda install -c conda-forge wxpython
-        pip install -r requirements.txt
-        pip install pyinstaller
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt pyinstaller wxPython
 
     - name: Building using pyinstaller
       run: |
-        cp .github/*.spec .
-        pyinstaller
+        copy .github\Beats2Fun.spec .
+        pyinstaller --noconfirm Beats2Fun.spec
 
-    # - name: Install requirements
-    #   run: sudo apt-get install -y p7zip-full nsis
-      
-    # - name: Building using pyinstaller
-    #   run: |
-    #     cp .github/*.spec .
-    #     docker run --rm -v "${{ github.workspace }}:/src" --entrypoint=/src/.github/entry_build.sh -it batonogov/pyinstaller-windows:latest
-        
-    # - name: Download and unpacking ffmpeg
-    #   run: |
-    #     wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full-shared.7z 
-    #     7z e ./ffmpeg-release-full-shared.7z -odist/Beats2Fun -ir\!bin
-        
-    # - name: Create windows installer
-    #   run: makensis .github/Beats2Fun.nsi
-      
-    # - uses: actions/upload-artifact@v2
-    #   with:
-    #     name: Beats2Fun
-    #     path: ./dist/Beats2Fun
-      
-    # - uses: actions/upload-artifact@v2
-    #   with:
-    #     name: Beats2Fun-setup.exe
-    #     path: ./dist/Beats2Fun-setup.exe
-    
+    - name: Archive Windows build
+      shell: pwsh
+      run: |
+        $destination = "Beats2Fun-windows-x64.zip"
+        if (Test-Path $destination) { Remove-Item $destination }
+        Compress-Archive -Path "dist/Beats2Fun/*" -DestinationPath $destination
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Beats2Fun-windows-x64
+        path: Beats2Fun-windows-x64.zip
+
+    - name: Upload release asset
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: Beats2Fun-windows-x64.zip
