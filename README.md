@@ -16,6 +16,10 @@ pip install -r requirements.txt
 python Beats2Fun.py
 ```
 
+## Windows release builds
+
+Every push (and published GitHub release) now triggers an automated Windows x64 build using PyInstaller. The workflow bundles the GUI applications and Resources folder into a stand-alone package and uploads a `Beats2Fun-windows-x64.zip` artifact you can download from the workflow run or release assets.
+
 All tools include a commandline interface and a graphical interface. Be default the GUI will always open
 
 Supported file types are:
